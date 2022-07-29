@@ -1,0 +1,64 @@
+version: '3'
+
+services:
+  loadbalancer:
+    image: haproxy:2.6
+    volumes:
+     - ./haproxy-ratelimiter.cfg:/usr/local/etc/haproxy/haproxy.cfg
+    ports: 
+     - 80:80
+     - 9999:9999
+    networks:
+     - net
+    profiles: ["rl"]
+
+  loadbalancer-jwt:
+    image: haproxyjwt
+    volumes:
+     - ./haproxy-jwt.cfg:/usr/local/etc/haproxy/haproxy.cfg
+       # only if lua script testing is necessary
+       #     - ./lua-proxy/lib/jwtverify.lua:/usr/local/share/lua/test/jwtverify.lua
+     - ./samples/pubkey.pem:/etc/haproxy/pem/pubkey.pem
+    ports: 
+     - 80:80
+     - 9999:9999
+    networks:
+     - net
+    environment:
+#     - OAUTH_HMAC_SECRET=hmac-secret
+     - OAUTH_PUBKEY_PATH=/etc/haproxy/pem/pubkey.pem
+     - OAUTH_ISSUER=https://auth.example.com
+     - OAUTH_AUDIENCE=https://mobile-client.example.com
+    profiles: ["jwt"]
+
+  loadbalancer-jwt-limit:
+    image: haproxyjwt
+    volumes:
+     - ./haproxy-jwt-ratelimiter.cfg:/usr/local/etc/haproxy/haproxy.cfg
+       # only if lua script testing is necessary
+       #     - ./lua-proxy/lib/jwtverify.lua:/usr/local/share/lua/test/jwtverify.lua
+     - ./samples/pubkey.pem:/etc/haproxy/pem/pubkey.pem
+    ports: 
+     - 80:80
+     - 9999:9999
+    networks:
+     - net
+    environment:
+     - OAUTH_PUBKEY_PATH=/etc/haproxy/pem/pubkey.pem
+     - OAUTH_ISSUER=https://auth.example.com
+     - OAUTH_AUDIENCE=https://mobile-client.example.com
+    profiles: ["jwt-limit"]
+
+  api01:
+    image: jwilder/whoami
+    networks:
+     - net
+  
+  api02:
+    image: jwilder/whoami
+    networks:
+     - net
+
+networks:
+  net:
+
